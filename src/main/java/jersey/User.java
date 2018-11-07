@@ -2,6 +2,7 @@ package jersey;
 
 import java.util.*;
 import java.io.*;
+import java.security.*;
 
 import com.mongodb.*;
 import com.mongodb.client.*;
@@ -15,34 +16,74 @@ public class User
 {
    public static final String DB = "users";
    public static final String COLLECTION = "users";
+
+   public String id;
    
    public String firstname;
    public String lastname;
-
-   public void push() throws IOException
-   {
-      MongoClient mc = new MongoClient();
-      MongoDatabase db = mc.getDatabase(DB);
-      MongoCollection<Document> collection = db.getCollection(COLLECTION);
-
-      ObjectMapper mapper = new ObjectMapper();
-      String       str    = mapper.writeValueAsString(this);
-      Document     doc    = Document.parse(str);
-      collection.insertOne(doc);
-   }
    
+   public User add() throws IOException
+   {
+      id = newId();
+      collection().insertOne(toDocument());
+      return this;
+   }
+   public void update() throws IOException
+   {
+      Document query = new Document();
+      query.put("id", id);
+      
+      collection().replaceOne(query, toDocument());
+   }   
    public static List<User> list() throws IOException
    {
-      MongoClient mc = new MongoClient();
-      MongoDatabase db = mc.getDatabase(DB);
-      MongoCollection<Document> collection = db.getCollection(COLLECTION);
-
-      ObjectMapper mapper = new ObjectMapper();
-      List<Document> docs = (List<Document>) collection.find().into(new ArrayList<Document>());
+      List<Document> docs = (List<Document>) collection().find().into(new ArrayList<Document>());
       List<User> res = new ArrayList<>();
       for (Document doc : docs)
-	 res.add( mapper.readValue(doc.toJson(), User.class) );
+      {
+	 User u = fromDocument(doc);
+	 //u.id = null;
+	 res.add(u);
+      }
 	 
       return res;
-   }   
+   }
+   public static User get(String id) throws IOException
+   {
+      Document query = new Document();
+      query.put("id", id);
+      
+      return fromDocument( collection().find(query).first() );
+   }
+   public static void delete(String id) throws IOException
+   {
+      Document query = new Document();
+      query.put("id", id);
+      
+      collection().deleteOne(query);
+   }
+   
+   public Document toDocument() throws IOException
+   {
+      return Document.parse( new ObjectMapper().writeValueAsString(this) );
+   }
+   
+   public static MongoCollection<Document> collection()
+   {
+      return new MongoClient().getDatabase(DB).getCollection(COLLECTION);
+   }
+   public static User fromDocument(Document doc) throws IOException
+   {
+      return new ObjectMapper().readValue(doc.toJson(), User.class);
+   }
+   public static String newId()
+   {
+      String base32 = "0123456789abcdfghijklmnpqrsvwxyz";
+      SecureRandom rand = new SecureRandom();
+      String res = "";
+      for (int i = 0; i < 32; i++)
+	 res = res + base32.charAt(rand.nextInt(base32.length()));
+
+      return res;
+   }
 }
