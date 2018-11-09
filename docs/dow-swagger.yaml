@@ -100,7 +100,7 @@ paths:
         404:
           description: "User not found"
   /users/list:
-    post:
+    get:
       tags:
       - "users"
       summary: "Get all users"
