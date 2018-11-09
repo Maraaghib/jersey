@@ -118,9 +118,9 @@ definitions:
     properties:
       id:
         type: "string"
-      firstName:
+      firstname:
         type: "string"
-      lastName:
+      lastname:
         type: "string"
 externalDocs:
   description: "Find out more about Swagger"
